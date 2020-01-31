@@ -10,22 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class TransaksiController extends Controller {
 
-    public function setHeader($headerType, $contentTypeHeader = null){
-        $type = "";
-        if($headerType == 'application/json' || $headerType == 'application/xml'){
-            if($contentTypeHeader == 'application/json'){
-                $type = 'json';
-            }else if($contentTypeHeader == 'application/xml'){
-                $type = 'xml';
-            }else if($contentTypeHeader == null){
-                return true;
-            }
-            return $type;
-        }else{
-            return false;
-        }
-    }
-
     public function index(Request $request){
         if(Gate::denies('check-role')){
             return response()->json([
@@ -39,23 +23,28 @@ class TransaksiController extends Controller {
             // validasi: hanya application/json atau application/xml yang valid
             if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
                 if ($acceptHeader === 'application/json') {
-                    if(Auth::user()->level === 'admin'){
+                    if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
                         $transaksi = Transaksi::OrderBy("id_transaksi", "DESC")->paginate(10)->toArray();
+                        $response = [
+                            'total_count' => $transaksi['total'],
+                            'limit' => $transaksi['per_page'],
+                            'pagination' => [
+                                'next_page' => $transaksi['next_page_url'],
+                                'current_page' => $transaksi['current_page']
+                            ],
+                            'data' => $transaksi['data']
+                        ];
+
+                        return response()->json($response, 200);
+                    }else{
+                        return response()->json([
+                            'success' => false,
+                            'status' => 403,
+                            'message' => 'You are unauthorized.'
+                        ], 403);
                     }
             }
         }
-
-        $response = [
-            'total_count' => $transaksi['total'],
-            'limit' => $transaksi['per_page'],
-            'pagination' => [
-                'next_page' => $transaksi['next_page_url'],
-                'current_page' => $transaksi['current_page']
-            ],
-            'data' => $transaksi['data']
-        ];
-
-        return response()->json($response, 200);
     }
 
 
@@ -101,20 +90,35 @@ class TransaksiController extends Controller {
             ], 403);
         }
 
-        if(Auth::user()->level === 'admin'){
+        if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
             $transaksi->fill($input);
             $transaksi->save();
-        }else{
-            return response()->json('Unauthorized levels.');
-        }
+            if($headerType == 'application/json' || $headerType == 'application/xml'){
+                if($contentTypeHeader == 'application/json'){
+                    return response()->json($transaksi, 200);
+                }else if($contentTypeHeader == 'application/xml'){
+                    $xml = new \SimpleXMLElement('<transaksi/>');
+                    $xmlItem = $xml->addChild('transaksi');
 
+                    $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
+                    $xmlItem->addChild('id_produk', $transaksi->id_produk);
+                    $xmlItem->addChild('id_user', $transaksi->id_user);
+                    $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
+                    $xmlItem->addChild('total_harga', $transaksi->total_harga);
+                    $xmlItem->addChild('created_at', $transaksi->created_at);
+                    $xmlItem->addChild('updated_at', $transaksi->updated_at);
 
-        if($this->setHeader($transaksi, $contentType) == 'json'){
-            return response()->json($transaksi, 200);
-        }else if($this->setHeader($headerType, $contentType) == 'xml'){
-            return $this->generateXML($transaksi, 200);
+                    return $xml->asXML();
+                }else{
+                    return response('Not acceptable', 406);
+                }
+             }
         }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
     }
 
@@ -146,29 +150,36 @@ class TransaksiController extends Controller {
             ], 403);
         }
 
-        if(Auth::user()->level === 'admin'){
+        if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
             $transaksi = Transaksi::create($input);
+            if($headerType == 'application/json' || $headerType == 'application/xml'){
+                if($contentTypeHeader == 'application/json'){
+                    return response()->json($transaksi, 200);
+                }else if($contentTypeHeader == 'application/xml'){
+                    $xml = new \SimpleXMLElement('<transaksi/>');
+                    $xmlItem = $xml->addChild('transaksi');
+
+                    $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
+                    $xmlItem->addChild('id_produk', $transaksi->id_produk);
+                    $xmlItem->addChild('id_user', $transaksi->id_user);
+                    $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
+                    $xmlItem->addChild('total_harga', $transaksi->total_harga);
+                    $xmlItem->addChild('created_at', $transaksi->created_at);
+                    $xmlItem->addChild('updated_at', $transaksi->updated_at);
+
+                    return $xml->asXML();
+                }else{
+                    return response('Not acceptable', 406);
+                }
+        }else{
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
 
-        if($headerType == 'application/json' || $headerType == 'application/xml'){
-            if($contentTypeHeader == 'application/json'){
-                return response()->json($transaksi, 200);
-            }else if($contentTypeHeader == 'application/xml'){
-                $xml = new \SimpleXMLElement('<transaksi/>');
-                $xmlItem = $xml->addChild('transaksi');
 
-                $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
-                $xmlItem->addChild('id_produk', $transaksi->id_produk);
-                $xmlItem->addChild('id_user', $transaksi->id_user);
-                $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
-                $xmlItem->addChild('total_harga', $transaksi->total_harga);
-                $xmlItem->addChild('created_at', $transaksi->created_at);
-                $xmlItem->addChild('updated_at', $transaksi->updated_at);
-
-                return $xml->asXML();
-            }else{
-                return response('Not acceptable', 406);
-            }
         }
     }
 
@@ -185,29 +196,34 @@ class TransaksiController extends Controller {
             ], 403);
         }
 
-        if(Auth::user()->level === 'admin'){
+        if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
             $transaksi = Transaksi::find($id);
             $transaksi->delete();
-        }
-        $msg = ['message' => 'data has been successfully deleted', 'id_transaksi' => $id];
+            $msg = ['message' => 'data has been successfully deleted', 'id_transaksi' => $id];
+            if($headerType == 'application/json'){
+                return response()->json($msg, 200);
+            }else if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<transaksi/>');
+                    $xmlItem = $xml->addChild('transaksi');
 
-        if($headerType == 'application/json'){
-            return response()->json($msg, 200);
-        }else if($headerType == 'application/xml'){
-            $xml = new \SimpleXMLElement('<transaksi/>');
-                $xmlItem = $xml->addChild('transaksi');
+                    $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
+                    $xmlItem->addChild('id_produk', $transaksi->id_produk);
+                    $xmlItem->addChild('id_user', $transaksi->id_user);
+                    $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
+                    $xmlItem->addChild('total_harga', $transaksi->total_harga);
+                    $xmlItem->addChild('created_at', $transaksi->created_at);
+                    $xmlItem->addChild('updated_at', $transaksi->updated_at);
 
-                $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
-                $xmlItem->addChild('id_produk', $transaksi->id_produk);
-                $xmlItem->addChild('id_user', $transaksi->id_user);
-                $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
-                $xmlItem->addChild('total_harga', $transaksi->total_harga);
-                $xmlItem->addChild('created_at', $transaksi->created_at);
-                $xmlItem->addChild('updated_at', $transaksi->updated_at);
-
-                return $xml->asXML();
+                    return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
         }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
     }
 

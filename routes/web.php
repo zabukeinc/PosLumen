@@ -15,12 +15,6 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
-// account
-
-$router->get('account', 'AccountController@index');
-
-
-$router->get('users', 'UsersController@index');
 
 // Produk CRUD
 Route::group(['middleware' => ['auth']], function($router){

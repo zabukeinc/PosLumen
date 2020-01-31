@@ -26,28 +26,32 @@ class SupplierController extends Controller {
                 if ($acceptHeader === 'application/json') {
                     if(Auth::user()->level === 'admin'){
                         $supplier = Supplier::OrderBy("id_supplier", "DESC")->paginate(10)->toArray();
+                        $response = [
+                            'total_count' => $supplier['total'],
+                            'limit' => $supplier['per_page'],
+                            'pagination' => [
+                                'next_page' => $supplier['next_page_url'],
+                                'current_page' => $supplier['current_page']
+                            ],
+                            'data' => $supplier['data']
+                        ];
+
+                        return response()->json($response, 200);
+                    }else{
+                        return response()->json([
+                            'success' => false,
+                            'status' => 403,
+                            'message' => 'You are unauthorized.'
+                        ], 403);
                     }
             }
         }
-
-        $response = [
-            'total_count' => $supplier['total'],
-            'limit' => $supplier['per_page'],
-            'pagination' => [
-                'next_page' => $supplier['next_page_url'],
-                'current_page' => $supplier['current_page']
-            ],
-            'data' => $supplier['data']
-        ];
-
-        return response()->json($response, 200);
     }
 
     public function store(Request $request)
     {
 
         $headerType = $request->header('Accept');
-        // $contentTypeHeader = $request->header('Content-Type');
 
         $input = $request->all();
         $validationRules = [
@@ -69,20 +73,27 @@ class SupplierController extends Controller {
 
         if(Auth::user()->level === 'admin'){
             $supplier = Supplier::create($input);
-        }
 
-        if($headerType == 'application/json'){
-            return response()->json($supplier, 200);
-        }else if($headerType == 'application/xml'){
-            $xml = new \SimpleXMLElement('<Suppliers/>');
-            $xmlItem = $xml->addChild('supplier');
+            if($headerType == 'application/json'){
+                return response()->json($supplier, 200);
+            }else if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<Suppliers/>');
+                $xmlItem = $xml->addChild('supplier');
 
-            $xmlItem->addChild('id_supplier', $supplier->id_supplier);
-            $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
-            $xmlItem->addChild('created_at', $supplier->created_at);
-            $xmlItem->addChild('updated_at', $supplier->updated_at);
+                $xmlItem->addChild('id_supplier', $supplier->id_supplier);
+                $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
+                $xmlItem->addChild('created_at', $supplier->created_at);
+                $xmlItem->addChild('updated_at', $supplier->updated_at);
+            }else{
+                return response('Not acceptable', 406);
+            }
+
         }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
     }
 
@@ -129,25 +140,27 @@ class SupplierController extends Controller {
         if(Auth::user()->level === 'admin'){
             $supplier->fill($input);
             $supplier->save();
+            if($headerType == 'application/json'){
+                return response()->json($supplier, 200);
+            }else if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<Suppliers/>');
+                $xmlItem = $xml->addChild('supplier');
+
+                $xmlItem->addChild('id_supplier', $supplier->id_supplier);
+                $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
+                $xmlItem->addChild('created_at', $supplier->created_at);
+                $xmlItem->addChild('updated_at', $supplier->updated_at);
+
+                return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
         }else{
-            return response()->json('Unauthorized levels.');
-        }
-
-
-        if($headerType == 'application/json'){
-            return response()->json($supplier, 200);
-        }else if($headerType == 'application/xml'){
-            $xml = new \SimpleXMLElement('<Suppliers/>');
-            $xmlItem = $xml->addChild('supplier');
-
-            $xmlItem->addChild('id_supplier', $supplier->id_supplier);
-            $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
-            $xmlItem->addChild('created_at', $supplier->created_at);
-            $xmlItem->addChild('updated_at', $supplier->updated_at);
-
-            return $xml->asXML();
-        }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
     }
 
@@ -167,24 +180,31 @@ class SupplierController extends Controller {
         if(Auth::user()->level === 'admin'){
             $supplier = Supplier::find($id);
             $supplier->delete();
-        }
-        $msg = ['message' => 'data has been successfully deleted', 'id_supplier' => $id];
+            $msg = ['message' => 'data has been successfully deleted', 'id_supplier' => $id];
+            if($headerType == 'application/json'){
+                return response()->json($msg, 200);
+            }else if($headerType == 'xml'){
+                $xml = new \SimpleXMLElement('<Suppliers/>');
+                $xmlItem = $xml->addChild('supplier');
 
-        if($headerType == 'application/json'){
-            return response()->json($msg, 200);
-        }else if($headerType == 'xml'){
-            $xml = new \SimpleXMLElement('<Suppliers/>');
-            $xmlItem = $xml->addChild('supplier');
+                $xmlItem->addChild('id_supplier', $supplier->id_supplier);
+                $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
+                $xmlItem->addChild('created_at', $supplier->created_at);
+                $xmlItem->addChild('updated_at', $supplier->updated_at);
 
-            $xmlItem->addChild('id_supplier', $supplier->id_supplier);
-            $xmlItem->addChild('nama_supplier', $supplier->nama_supplier);
-            $xmlItem->addChild('created_at', $supplier->created_at);
-            $xmlItem->addChild('updated_at', $supplier->updated_at);
-
-            return $xml->asXML();
+                return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
         }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
+
+
     }
 
 }

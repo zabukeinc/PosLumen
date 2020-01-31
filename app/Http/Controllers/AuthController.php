@@ -7,6 +7,8 @@ use App\Models\Users;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate;
+
 
 class AuthController extends Controller {
 
@@ -28,20 +30,27 @@ class AuthController extends Controller {
             return response()->json($validator->errors(), 400);
         }
 
+        if(Auth::user()->level === 'admin'){
+            $user = new Users;
+            $user->username = $request->input('username');
+            $plainPassword = $request->input('password');
+            $user->password = app('hash')->make($plainPassword);
+            $user->save();
 
-        $user = new Users;
-        $user->username = $request->input('username');
-        $plainPassword = $request->input('password');
-        $user->password = app('hash')->make($plainPassword);
-        $user->save();
+            $account = new Account;
+            $account->nama_pegawai = $request->input('nama_pegawai');
+            $account->alamat_pegawai = $request->input('alamat_pegawai');
+            $account->id_user = $user->id_users;
+            $account->save();
 
-        $account = new Account;
-        $account->nama_pegawai = $request->input('nama_pegawai');
-        $account->alamat_pegawai = $request->input('alamat_pegawai');
-        $account->id_user = $user->id_users;
-        $account->save();
-
-        return response()->json(array('user' => $user, 'detail_user' => $account), 200);
+            return response()->json(array('user' => $user, 'detail_user' => $account), 200);
+        }else{
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
+        }
     }
 
 

@@ -26,47 +26,59 @@ class UsersController extends Controller {
                 if ($acceptHeader === 'application/json') {
                     if(Auth::user()->level === 'admin'){
                         $users = Users::OrderBy("id_users", "DESC")->paginate(10)->toArray();
+                        $response = [
+                            'total_count' => $users['total'],
+                            'limit' => $users['per_page'],
+                            'pagination' => [
+                                'next_page' => $users['next_page_url'],
+                                'current_page' => $users['current_page']
+                            ],
+                            'data' => $users['data']
+                        ];
+
+                        return response()->json($response, 200);
+                    }else{
+                        return response()->json([
+                            'success' => false,
+                            'status' => 403,
+                            'message' => 'You are unauthorized.'
+                        ], 403);
                     }
+                }
             }
-        }
-
-        $response = [
-            'total_count' => $users['total'],
-            'limit' => $users['per_page'],
-            'pagination' => [
-                'next_page' => $users['next_page_url'],
-                'current_page' => $users['current_page']
-            ],
-            'data' => $users['data']
-        ];
-
-        return response()->json($response, 200);
     }
 
 
     public function show(Request $request, $id){
         $headerType = $request->header('Accept');
 
-        $users = Users::find($id);
+        if(Auth::user()->level === 'admin'){
+            $users = Users::find($id);
+            if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<Users/>');
+                $xmlItem = $xml->addChild('users');
 
-        if($headerType == 'application/xml'){
-            $xml = new \SimpleXMLElement('<Users/>');
-            $xmlItem = $xml->addChild('users');
+                $xmlItem->addChild('id_produk', $users->id_produk);
+                $xmlItem->addChild('nama_produk', $users->nama_produk);
+                $xmlItem->addChild('jenis_produk', $users->jenis_produk);
+                $xmlItem->addChild('harga_produk', $users->harga_produk);
+                $xmlItem->addChild('stok_produk', $users->stok_produk);
+                $xmlItem->addChild('id_supplier', $users->id_supplier);
+                $xmlItem->addChild('created_at', $users->created_at);
+                $xmlItem->addChild('updated_at', $users->updated_at);
 
-            $xmlItem->addChild('id_produk', $users->id_produk);
-            $xmlItem->addChild('nama_produk', $users->nama_produk);
-            $xmlItem->addChild('jenis_produk', $users->jenis_produk);
-            $xmlItem->addChild('harga_produk', $users->harga_produk);
-            $xmlItem->addChild('stok_produk', $users->stok_produk);
-            $xmlItem->addChild('id_supplier', $users->id_supplier);
-            $xmlItem->addChild('created_at', $users->created_at);
-            $xmlItem->addChild('updated_at', $users->updated_at);
-
-            return $xml->asXML();
-        }else if($headerType == 'application/json'){
-            return response()->json($users, 200);
+                return $xml->asXML();
+            }else if($headerType == 'application/json'){
+                return response()->json($users, 200);
+            }else{
+                return response('Unsupported media', 415);
+            }
         }else{
-            return response('Unsupported media', 415);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
     }
 
@@ -90,18 +102,33 @@ class UsersController extends Controller {
         if(Auth::user()->level === 'admin'){
             $users->fill($input);
             $users->save();
+            if($headerType == 'application/json'){
+                return response()->json($users, 200);
+            }else if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<Users/>');
+                $xmlItem = $xml->addChild('users');
+
+                $xmlItem->addChild('id_produk', $users->id_produk);
+                $xmlItem->addChild('nama_produk', $users->nama_produk);
+                $xmlItem->addChild('jenis_produk', $users->jenis_produk);
+                $xmlItem->addChild('harga_produk', $users->harga_produk);
+                $xmlItem->addChild('stok_produk', $users->stok_produk);
+                $xmlItem->addChild('id_supplier', $users->id_supplier);
+                $xmlItem->addChild('created_at', $users->created_at);
+                $xmlItem->addChild('updated_at', $users->updated_at);
+
+                return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
         }else{
-            return response()->json('Unauthorized levels.');
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
 
-
-        if($this->setHeader($headerType, $contentType) == 'json'){
-            return response()->json($users, 200);
-        }else if($this->setHeader($headerType, $contentType) == 'xml'){
-            return $this->generateXML($users, 200);
-        }else{
-            return response('Not acceptable', 406);
-        }
     }
 
     public function destroy(Request $request, $id){
@@ -120,16 +147,35 @@ class UsersController extends Controller {
         if(Auth::user()->level === 'admin'){
             $users = Users::find($id);
             $users->delete();
-        }
-        $msg = ['message' => 'data has been successfully deleted', 'id_users' => $id];
+            $msg = ['message' => 'data has been successfully deleted', 'id_users' => $id];
+            if($headerType == 'application/json'){
+                return response()->json($users, 200);
+            }else if($headerType == 'application/xml'){
+                $xml = new \SimpleXMLElement('<Users/>');
+                $xmlItem = $xml->addChild('users');
 
-        if($this->setHeader($headerType) == 'json'){
-            return response()->json($msg, 200);
-        }else if($this->setHeader($headerType) == 'xml'){
-            return $this->generateXML($users);
+                $xmlItem->addChild('id_produk', $users->id_produk);
+                $xmlItem->addChild('nama_produk', $users->nama_produk);
+                $xmlItem->addChild('jenis_produk', $users->jenis_produk);
+                $xmlItem->addChild('harga_produk', $users->harga_produk);
+                $xmlItem->addChild('stok_produk', $users->stok_produk);
+                $xmlItem->addChild('id_supplier', $users->id_supplier);
+                $xmlItem->addChild('created_at', $users->created_at);
+                $xmlItem->addChild('updated_at', $users->updated_at);
+
+                return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
         }else{
-            return response('Not acceptable', 406);
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are unauthorized.'
+            ], 403);
         }
+
+
     }
 
 }
