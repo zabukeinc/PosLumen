@@ -76,7 +76,6 @@ class TransaksiController extends Controller {
     public function update(Request $request, $id){
 
         $headerType = $request->header('Accept');
-        $contentType = $request->header('Content-Type');
 
         $input = $request->all();
         $transaksi = Transaksi::find($id);
@@ -93,27 +92,25 @@ class TransaksiController extends Controller {
         if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
             $transaksi->fill($input);
             $transaksi->save();
-            if($headerType == 'application/json' || $headerType == 'application/xml'){
-                if($contentTypeHeader == 'application/json'){
-                    return response()->json($transaksi, 200);
-                }else if($contentTypeHeader == 'application/xml'){
-                    $xml = new \SimpleXMLElement('<transaksi/>');
-                    $xmlItem = $xml->addChild('transaksi');
+            if($headerType == 'application/json'){
+                return response()->json($transaksi, 200);
+            }else if($contentTypeHeader == 'application/xml'){
+                $xml = new \SimpleXMLElement('<transaksi/>');
+                $xmlItem = $xml->addChild('transaksi');
 
-                    $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
-                    $xmlItem->addChild('id_produk', $transaksi->id_produk);
-                    $xmlItem->addChild('id_user', $transaksi->id_user);
-                    $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
-                    $xmlItem->addChild('total_harga', $transaksi->total_harga);
-                    $xmlItem->addChild('created_at', $transaksi->created_at);
-                    $xmlItem->addChild('updated_at', $transaksi->updated_at);
+                $xmlItem->addChild('id_transaksi', $transaksi->id_transaksi);
+                $xmlItem->addChild('id_produk', $transaksi->id_produk);
+                $xmlItem->addChild('id_user', $transaksi->id_user);
+                $xmlItem->addChild('jml_transaksi', $transaksi->jml_transaksi);
+                $xmlItem->addChild('total_harga', $transaksi->total_harga);
+                $xmlItem->addChild('created_at', $transaksi->created_at);
+                $xmlItem->addChild('updated_at', $transaksi->updated_at);
 
-                    return $xml->asXML();
-                }else{
-                    return response('Not acceptable', 406);
-                }
-             }
-        }else{
+                return $xml->asXML();
+            }else{
+                return response('Not acceptable', 406);
+            }
+            }else{
             return response()->json([
                 'success' => false,
                 'status' => 403,
@@ -126,7 +123,6 @@ class TransaksiController extends Controller {
     {
 
         $headerType = $request->header('Accept');
-        $contentTypeHeader = $request->header('Content-Type');
 
         $input = $request->all();
         $validationRules = [
@@ -152,10 +148,9 @@ class TransaksiController extends Controller {
 
         if(Auth::user()->level === 'admin' || Auth::user()->level === 'pegawai'){
             $transaksi = Transaksi::create($input);
-            if($headerType == 'application/json' || $headerType == 'application/xml'){
-                if($contentTypeHeader == 'application/json'){
+            if($headerType == 'application/json'){
                     return response()->json($transaksi, 200);
-                }else if($contentTypeHeader == 'application/xml'){
+                }else if($headerType == 'application/xml'){
                     $xml = new \SimpleXMLElement('<transaksi/>');
                     $xmlItem = $xml->addChild('transaksi');
 
@@ -177,9 +172,6 @@ class TransaksiController extends Controller {
                 'status' => 403,
                 'message' => 'You are unauthorized.'
             ], 403);
-        }
-
-
         }
     }
 
